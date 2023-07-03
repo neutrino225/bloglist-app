@@ -4,8 +4,5 @@
             "mode": "auto"
         }
     ],
-    "eslint.enable": true,
-    "[javascript]": {
-        "editor.defaultFormatter": "rome.rome"
-    }
+    "eslint.enable": false,
 }

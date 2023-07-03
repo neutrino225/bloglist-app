@@ -1,38 +1,61 @@
 /** @format */
 
 import { useState, useEffect, useRef } from 'react'
-import Blog from './components/Blog'
+import { useSelector, useDispatch } from 'react-redux'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+
 import loginService from './services/login'
-import LoginForm from './components/LoginForm'
-import CreateBlog from './components/CreateBlog'
-import Notification from './components/Notification'
-import Togglable from './components/Togglable'
 import './index.css'
 
-import blogService from './services/blogs'
+import Blog from './components/Blog'
+// import LoginForm from './components/LoginForm'
+import Notification from './components/Notification'
+import Users from './components/Users'
+import User from './components/User'
+import Home from './components/Home'
+
+import { initializeBlogs } from './reducers/blogreducer'
+import { setMessage } from './reducers/notificationreducer'
+import { setUser } from './reducers/userreducer'
+import { initializeUsers } from './reducers/usersReducer'
+
+import {
+  createBlog,
+  updateBlog,
+  deleteBlog,
+  addComment,
+} from './reducers/blogreducer'
+
+// import Button from '@mui/material/Button'
+import Container from '@mui/material/Container'
+import Navbar from './components/Navbar'
+import Login from './components/Login'
+import { Grid } from '@mui/material'
+import CreateBlog from './components/CreateBlog'
 
 const App = () => {
-  const [blogs, setBlogs] = useState([])
+  // const blogs = useSelector((state) => state.blogs)
+  const user = useSelector((state) => state.user)
+
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [user, setUser] = useState(null)
-
-  // Notifications
-  const [notification, setNotification] = useState(null)
-  const [notificationState, setNotificationState] = useState(null)
+  // const [user, setUser] = useState(null)
 
   // Ref for Togglable
   const blogFormRef = useRef()
 
+  const dispatch = useDispatch()
+
   useEffect(() => {
-    blogService.getAll().then((blogs) => setBlogs(blogs))
+    dispatch(initializeBlogs())
+    dispatch(initializeUsers())
   }, [])
 
   useEffect(() => {
     const loggedUserJSON = window.localStorage.getItem('loggedBlogUser')
     if (loggedUserJSON) {
       const user = JSON.parse(loggedUserJSON)
-      setUser(user)
+      dispatch(setUser(user))
     }
   }, [])
 
@@ -57,211 +80,201 @@ const App = () => {
         password,
       })
 
+      dispatch(setUser(user))
+
       window.localStorage.setItem('loggedBlogUser', JSON.stringify(user))
 
-      setUser(user)
+      // setUser(user)
       setUsername('')
       setPassword('')
 
       // Success Notification
-
-      setNotification(`Welcome ${user.name}`)
-      setNotificationState('success')
-
-      setTimeout(() => {
-        setNotification(null)
-        setNotificationState(null)
-      }, 5000)
+      dispatch(
+        setMessage({
+          message: `Welcome ${user.name}`,
+          messageState: 'success',
+        })
+      )
     } catch (exception) {
-      setUser(null)
+      dispatch(setUser(null))
 
       setUsername('')
       setPassword('')
 
       // Error Notification
-      setNotification('Wrong username or password')
-      setNotificationState('error')
-
-      setTimeout(() => {
-        setNotification(null)
-        setNotificationState(null)
-      }, 5000)
+      dispatch(
+        setMessage({
+          message: 'Wrong username or password',
+          messageState: 'error',
+        })
+      )
     }
   }
 
   const handleLogout = (event) => {
     event.preventDefault()
-    setUser(null)
+    dispatch(setUser(null))
     window.localStorage.removeItem('loggedBlogUser')
+
     // Success Notification
 
-    setNotification('Logged out')
-    setNotificationState('success')
-
-    setTimeout(() => {
-      setNotification(null)
-      setNotificationState(null)
-    }, 5000)
+    dispatch(
+      setMessage({
+        message: 'Logged out',
+        messageState: 'success',
+      })
+    )
   }
 
   const handleBlogCreation = async (blogObject) => {
-    blogFormRef.current.toggleVisibility()
     try {
-      const returnedBlog = await blogService.addBlog(blogObject, user.token)
-      setBlogs(blogs.concat(returnedBlog))
+      dispatch(createBlog(blogObject, user.token))
 
       // Success Notification
-
-      setNotification(
-        `A new blog ${blogObject.title} by ${blogObject.author} added`,
+      dispatch(
+        setMessage({
+          message: `A new blog ${blogObject.title} by ${blogObject.author} added`,
+          messageState: 'success',
+        })
       )
-      setNotificationState('success')
-
-      setTimeout(() => {
-        setNotification(null)
-        setNotificationState(null)
-      }, 5000)
     } catch (exception) {
       // Error Notification
-      console.error(exception)
-
-      setNotification('Error adding blog')
-      setNotificationState('error')
-
-      setTimeout(() => {
-        setNotification(null)
-        setNotificationState(null)
-      }, 5000)
+      dispatch(
+        setMessage({
+          message: 'Error adding blog',
+          messageState: 'error',
+        })
+      )
     }
   }
 
   const handleUpdateBlog = async (blogToUpdate, blogid) => {
     try {
-      const updatedBlog = await blogService.updateBlog(
-        blogToUpdate,
-        user.token,
-        blogid,
-      )
-
-      const updatedList = blogs.map((b) => (b.id !== blogid ? b : updatedBlog))
-
-      const sortedBlogList = updatedList.sort((a, b) => b.likes - a.likes)
-
-      setBlogs(sortedBlogList)
+      dispatch(updateBlog(blogToUpdate, user.token, blogid))
 
       // Success Notification
-
-      setNotification(
-        `You liked ${blogToUpdate.title} by ${blogToUpdate.author}`,
+      dispatch(
+        setMessage({
+          message: `You liked ${blogToUpdate.title} by ${blogToUpdate.author}`,
+          messageState: 'success',
+        })
       )
-      setNotificationState('success')
-
-      setTimeout(() => {
-        setNotification(null)
-        setNotificationState(null)
-      }, 5000)
     } catch (exception) {
-      console.error(exception)
+      console.log(exception)
       // Error Notification
-      setNotification('Error updating blog')
-      setNotificationState('error')
-
-      setTimeout(() => {
-        setNotification(null)
-        setNotificationState(null)
-      }, 5000)
+      dispatch(
+        setMessage({
+          message: 'Error updating blog',
+          messageState: 'error',
+        })
+      )
     }
   }
 
   const handleDeleteBlog = async (blogid) => {
     try {
-      await blogService.deleteBlog(blogid, user.token)
-
-      setBlogs(blogs.filter((blog) => blog.id !== blogid))
-
+      dispatch(deleteBlog(blogid, user.token))
       // Sucess Notification
-      setNotification('Deleted successfully')
-      setNotificationState('success')
-
-      setTimeout(() => {
-        setNotification(null)
-        setNotificationState(null)
-      }, 5000)
+      dispatch(
+        setMessage({
+          message: 'Deleted successfully',
+          messageState: 'success',
+        })
+      )
     } catch (exception) {
       console.error(exception)
 
       // Error Notification
+      dispatch(
+        setMessage({
+          message: 'Error deleting blog',
+          messageState: 'error',
+        })
+      )
+    }
+  }
 
-      setNotification('Error deleting blog')
-      setNotificationState('error')
+  const handleAddComment = async (blogid, comment) => {
+    try {
+      dispatch(addComment(blogid, comment, user.token))
 
-      setTimeout(() => {
-        setNotification(null)
-        setNotificationState(null)
-      }, 5000)
+      // Sucess Notification
+      dispatch(
+        setMessage({
+          message: 'Comment added successfully',
+          messageState: 'success',
+        })
+      )
+    } catch (exception) {
+      // Error Notification
+      dispatch(
+        setMessage({
+          message: 'Error deleting blog',
+          messageState: 'error',
+        })
+      )
     }
   }
 
   if (user === null) {
     return (
-      <div>
-        <Notification message={notification} state={notificationState} />
-        <LoginForm
+      <Container fixed sx={{ marginTop: 5 }}>
+        <Notification />
+        {/* <LoginForm
           handleLogin={handleLogin}
           handlePassword={handlePassword}
           handleUsername={handleUsername}
           username={username}
           password={password}
+        /> */}
+        <Login
+          handleLogin={handleLogin}
+          handlePassword={handlePassword}
+          handleUsername={handleUsername}
         />
-      </div>
+      </Container>
     )
   }
 
-  console.log('notification -> ', notification)
-  console.log('notificationState -> ', notificationState)
-
   return (
-    <div>
-      <Notification message={notification} state={notificationState} />
-      <h1>Blogs</h1>
-      <div>
-        {/* <Togglable buttonLabel="login">
-					<LoginForm
-						handleLogin={handleLogin}
-						handlePassword={handlePassword}
-						handleUsername={handleUsername}
-						username={username}
-						password={password}
-					/>
-				</Togglable> */}
-      </div>
-      <div>
-        <p>
-          {user.name} logged in <button onClick={handleLogout}>logout</button>
-        </p>
+    <Router>
+      <Navbar loggedInUser={user.name} logout={handleLogout} />
+      <Container sx={{ marginTop: 5 }} fixed>
+        <Notification />
+        <Grid container justifyContent="center">
+          <h1 style={{ margin: 'auto', marginBottom: '2rem' }}>Blogs App</h1>
+        </Grid>
         <div>
-          <h2>Create blog</h2>
-          <div>
-            <Togglable buttonLabel="create new blog" ref={blogFormRef}>
-              <CreateBlog createBlog={handleBlogCreation} />
-            </Togglable>
-          </div>
+          <Routes>
+            <Route path="/users/:id" element={<User />} />
+            <Route path="/users" element={<Users />} />
+            <Route
+              path="/blogs/:id"
+              element={
+                <Blog
+                  updateBlog={handleUpdateBlog}
+                  deleteBlog={handleDeleteBlog}
+                  addComment={handleAddComment}
+                />
+              }
+            />
+            <Route
+              path="/"
+              element={
+                <Home
+                  handleBlogCreation={handleBlogCreation}
+                  blogFormRef={blogFormRef}
+                />
+              }
+            />
+            <Route
+              path="/createblog"
+              element={<CreateBlog createBlog={handleBlogCreation} />}
+            />
+          </Routes>
         </div>
-      </div>
-      <div>
-        <h2>Saved blogs</h2>
-      </div>
-      <div className="blog">
-        {blogs.map((blog) => (
-          <Blog
-            key={blog.id}
-            blog={blog}
-            updateBlog={handleUpdateBlog}
-            deleteBlog={handleDeleteBlog}
-          />
-        ))}
-      </div>
-    </div>
+      </Container>
+    </Router>
   )
 }
 

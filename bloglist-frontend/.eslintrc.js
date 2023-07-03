@@ -12,7 +12,7 @@ module.exports = {
 		es6: true,
 		"jest/globals": true,
 	},
-	extends: ["eslint:recommended", "plugin:react/recommended"],
+	extends: ["eslint:recommended", "plugin:react/recommended", "prettier"],
 	parserOptions: {
 		ecmaFeatures: {
 			jsx: true,
@@ -20,7 +20,7 @@ module.exports = {
 		ecmaVersion: 2018,
 		sourceType: "module",
 	},
-	plugins: ["react", "jest"],
+	plugins: ["react", "jest", "prettier"],
 	rules: {
 		indent: ["error", 2],
 		"linebreak-style": ["error", "unix"],
@@ -33,6 +33,7 @@ module.exports = {
 		"no-console": 0,
 		"react/prop-types": 0,
 		"react/react-in-jsx-scope": "off",
+		"prettier/prettier": "warn",
 	},
 	settings: {
 		react: {
